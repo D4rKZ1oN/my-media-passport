@@ -65,7 +65,7 @@ export async function editMedia(id:string, changes:{Status?:string;Progress?:num
   const found = await findMediaRowById(id); if (!found) throw new Error("Título no encontrado");
   const total = num(found.item.Total); const status = safeStatus(changes.Status || found.item.Status);
   let progress = num(changes.Progress ?? found.item.Progress); let score: number|string = changes.Score === "" || changes.Score === undefined ? "" : num(changes.Score);
-  if (score !== "" && (score < 1 || score > 10)) score = "";
+  if (typeof score === "number" && (score < 1 || score > 10)) score = "";
   const patch: Record<string,unknown> = { Status: status, Score: score, UpdatedAt: now() };
   if (status === "Completed") { progress = total || 1; patch.FinishDate = now(); }
   else if (status === "Watching") { progress = progress > 0 ? progress : 1; patch.StartDate = found.item.StartDate || now(); patch.FinishDate = ""; }
