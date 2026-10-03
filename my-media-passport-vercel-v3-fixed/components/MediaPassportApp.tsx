@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Check, ChevronRight, Clock3, Film, Heart, Home, Library, Minus, Pencil, Plus, Search, Sparkles, Star, Trash2, Tv, X } from "lucide-react";
+import { Bell, Check, ChevronLeft, ChevronRight, Clock3, Film, Heart, Home, Library, Minus, Pencil, Plus, Search, Sparkles, Star, Trash2, Tv, X } from "lucide-react";
 import type { HomeData, MediaItem, SearchItem, UpdateItem } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/status";
 
@@ -83,21 +83,71 @@ function ErrorBox({message,onRetry}:{message:string;onRetry:()=>void}){return <d
 function Empty({children}:{children:React.ReactNode}){return <div className="empty-box">{children}</div>}
 
 function HomeView({state,onRetry,onFilter,onViewLibrary,onProgress,notify,refreshLibrary}:{state:ApiState<HomeData>;onRetry:()=>void;onFilter:(s:string)=>void;onViewLibrary:()=>void;onProgress:(i:MediaItem,d:1|-1)=>void;notify:(s:string)=>void;refreshLibrary:()=>void}){
-  const [favOpen,setFavOpen]=useState(false); const data=state.data||emptyHome;
+  const [favOpen,setFavOpen]=useState(false);
+  const [editingFavorites,setEditingFavorites]=useState(false);
+  const [favItems,setFavItems]=useState<MediaItem[]>([]);
+  const data=state.data||emptyHome;
+
+  useEffect(()=>{setFavItems(data.favorites||[])},[state.data]);
+
   if(state.loading&&!state.data)return <><HeroSkeleton/><LoadingBlock/></>;
   if(state.error&&!state.data)return <ErrorBox message={state.error} onRetry={onRetry}/>;
+
   const p=data.profile;
+  const displayName=(!p?.Username||["Tu nombre","Your name"].includes(String(p.Username).trim()))?"DK08":p.Username;
+  const displayHandle=(!p?.Handle||["@tuusuario","@youruser"].includes(String(p.Handle).trim().toLowerCase()))?"@dk08":p.Handle;
+
+  const removeFavorite=async(item:MediaItem)=>{
+    const before=favItems;
+    setFavItems(current=>current.filter(x=>String(x.ID)!==String(item.ID)));
+    try{
+      await api(`/api/media/${item.ID}`,{method:"PATCH",body:JSON.stringify({action:"favorite",value:false})});
+      notify("Quitado del Top 5");
+      await Promise.all([onRetry(),refreshLibrary()]);
+    }catch(e){
+      setFavItems(before);
+      notify(e instanceof Error?e.message:"No pudimos quitarlo");
+    }
+  };
+
+  const moveFavorite=async(index:number,direction:-1|1)=>{
+    const target=index+direction;
+    if(target<0||target>=favItems.length)return;
+    const before=[...favItems];
+    const next=[...favItems];
+    [next[index],next[target]]=[next[target],next[index]];
+    setFavItems(next);
+    try{
+      await api("/api/favorites/reorder",{method:"POST",body:JSON.stringify({ids:next.map(i=>String(i.ID))})});
+      notify(`Top ${index+1} movido a Top ${target+1}`);
+      await onRetry();
+    }catch(e){
+      setFavItems(before);
+      notify(e instanceof Error?e.message:"No pudimos reordenar");
+    }
+  };
+
   return <>
     <section className="profile-hero">
-      <div className="hero-glow"/><div className="profile-line"><div className="avatar">{p?.AvatarURL?<img src={p.AvatarURL} alt="Avatar"/>:<span>{(p?.Username||"MP").slice(0,2).toUpperCase()}</span>}</div><div><div className="eyebrow">MY MEDIA PASSPORT</div><h1>{p?.Username||"DK04"}</h1><p className="handle">{p?.Handle||"@dk04"}</p></div></div>
+      <div className="hero-glow"/><div className="profile-line"><div className="avatar">{p?.AvatarURL?<img src={p.AvatarURL} alt="Avatar"/>:<span>{String(displayName).slice(0,2).toUpperCase()}</span>}</div><div><div className="eyebrow">MY MEDIA PASSPORT</div><h1>{displayName}</h1><p className="handle">{displayHandle}</p></div></div>
       <div className="stats-grid"><Stat n={data.total} label="Total" onClick={()=>onFilter("")}/><Stat n={data.counts.Watching||0} label="Viendo" onClick={()=>onFilter("Watching")}/><Stat n={data.counts.Completed||0} label="Ya la vi" onClick={()=>onFilter("Completed")}/><Stat n={data.counts["Plan to Watch"]||0} label="Próximo" onClick={()=>onFilter("Plan to Watch")}/><Stat n={data.counts["On Hold"]||0} label="En pausa" onClick={()=>onFilter("On Hold")}/><Stat n={data.counts.Dropped||0} label="Abandonado" onClick={()=>onFilter("Dropped")}/></div>
     </section>
-    <Section title="Mis favoritos" subtitle="Tu top 5 personal" action={data.favorites.length<5?<button className="ghost-btn" onClick={()=>setFavOpen(true)}><Plus size={16}/> Añadir</button>:undefined}>
-      <Favorites items={data.favorites} onAdd={()=>setFavOpen(true)}/>
+
+    <Section
+      title="Mis favoritos"
+      subtitle="Tu top 5 personal"
+      action={<div className="top5-actions">
+        {favItems.length<5&&<button className="ghost-btn" onClick={()=>setFavOpen(true)}><Plus size={16}/> Añadir</button>}
+        {favItems.length>0&&<button className={`ghost-btn ${editingFavorites?"active":""}`} onClick={()=>setEditingFavorites(v=>!v)}>{editingFavorites?<Check size={16}/>:<Pencil size={16}/>} {editingFavorites?"Listo":"Editar Top 5"}</button>}
+      </div>}
+    >
+      <Favorites items={favItems} onAdd={()=>setFavOpen(true)} editing={editingFavorites} onRemove={removeFavorite} onMove={moveFavorite}/>
     </Section>
+
     <Section title="Agregados recientemente" subtitle="Tus últimas incorporaciones" action={<button className="text-btn" onClick={onViewLibrary}>Ver lista <ChevronRight size={15}/></button>}><PosterGrid items={data.recent}/></Section>
     <Section title="Viendo ahora" subtitle="Continúa donde lo dejaste"><WatchingList items={data.watching} onProgress={onProgress}/></Section>
-    {favOpen&&<FavoriteModal close={()=>setFavOpen(false)} notify={notify} onChanged={async()=>{setFavOpen(false);await Promise.all([onRetry(),refreshLibrary()])}}/>}
+
+    {favOpen&&<FavoriteModal close={()=>setFavOpen(false)} notify={notify} onChanged={async()=>{await Promise.all([onRetry(),refreshLibrary()])}}/>}
   </>
 }
 function HeroSkeleton(){return <div className="profile-hero"><div className="profile-line"><div className="sk round"/><div className="grow"><div className="sk line sm"/><div className="sk line xl"/><div className="sk line sm"/></div></div><div className="stats-grid">{Array.from({length:6}).map((_,i)=><div className="stat-card" key={i}><div className="sk line lg"/><div className="sk line"/></div>)}</div></div>}
@@ -105,11 +155,66 @@ function Stat({n,label,onClick}:{n:number;label:string;onClick:()=>void}){return
 function Section({title,subtitle,action,children}:{title:string;subtitle?:string;action?:React.ReactNode;children:React.ReactNode}){return <section className="section"><div className="section-head"><div><h2>{title}</h2>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>{children}</section>}
 function Score({value}:{value:unknown}){if(value===""||value===undefined||value===null)return null;return <span className="score"><Star size={11} fill="currentColor"/>{String(value)}</span>}
 function Poster({item,className=""}:{item:MediaItem;className?:string}){return <div className={`poster-card ${className}`}>{item.PosterURL?<img src={String(item.PosterURL)} alt={String(item.Title||"Poster")} loading="lazy"/>:<div className="poster-placeholder"><Film/></div>}<Score value={item.Score}/><div className="poster-gradient"/><div className="poster-copy"><b>{item.Title}</b><span>{item.Type} {item.Year?`· ${item.Year}`:""}</span></div></div>}
-function Favorites({items,onAdd}:{items:MediaItem[];onAdd:()=>void}){const slots=[0,1,2,3,4];return <div className="favorites-grid">{slots.map((i)=>items[i]?<Poster item={items[i]} key={i} className={i===0?"favorite-big":""}/>:<button key={i} className={`favorite-empty ${i===0?"favorite-big":""}`} onClick={onAdd}><Plus/><span>Añadir favorito</span></button>)}</div>}
-function PosterGrid({items}:{items:MediaItem[]}){return items.length?<div className="poster-grid">{items.map(i=><Poster key={i.ID} item={i}/>)}</div>:<Empty>Aún no hay títulos recientes.</Empty>}
-function WatchingList({items,onProgress}:{items:MediaItem[];onProgress:(i:MediaItem,d:1|-1)=>void}){if(!items.length)return <Empty>No tienes títulos en “Viendo” ahora.</Empty>;return <div className="watch-list">{items.map(i=>{const p=num(i.Progress),t=num(i.Total),pct=t?Math.min(100,p/t*100):0;return <div className="watch-row" key={i.ID}><div className="mini-poster">{i.PosterURL?<img src={String(i.PosterURL)} alt=""/>:<Film/>}<Score value={i.Score}/></div><div className="watch-main"><div className="row-top"><div><h3>{i.Title}</h3><p>{i.Type} · {STATUS_LABELS[i.Status]||i.Status}</p></div><span className="progress-count">{p}{t?` / ${t}`:""}</span></div><div className="progress-track"><i style={{width:`${pct}%`}}/></div></div><div className="stepper"><button onClick={()=>onProgress(i,-1)}><Minus/></button><button className="plus" onClick={()=>onProgress(i,1)}><Plus/></button></div></div>})}</div>}
 
-function FavoriteModal({close,notify,onChanged}:{close:()=>void;notify:(s:string)=>void;onChanged:()=>void}){const [state,setState]=useState<ApiState<MediaItem[]>>({loading:true,data:null,error:""});useEffect(()=>{api<MediaItem[]>("/api/library").then(d=>setState({loading:false,data:d,error:""})).catch(e=>setState({loading:false,data:null,error:e.message}))},[]);const candidates=(state.data||[]).filter(i=>!truthy(i.Favorite));const add=async(i:MediaItem)=>{try{await api(`/api/media/${i.ID}`,{method:"PATCH",body:JSON.stringify({action:"favorite",value:true})});notify("Añadido a favoritos");onChanged()}catch(e){notify(e instanceof Error?e.message:"Error")}};return <Modal title="Añadir favorito" close={close}>{state.loading?<LoadingBlock cards={2}/>:candidates.length?<div className="candidate-list">{candidates.map(i=><button key={i.ID} onClick={()=>add(i)}><span>{i.PosterURL?<img src={String(i.PosterURL)} alt=""/>:<Film/>}</span><div><b>{i.Title}</b><small>{i.Type} · {STATUS_LABELS[i.Status]||i.Status}</small></div><Plus/></button>)}</div>:<Empty>No hay más títulos disponibles.</Empty>}</Modal>}
+function Favorites({items,onAdd,editing,onRemove,onMove}:{items:MediaItem[];onAdd:()=>void;editing:boolean;onRemove:(i:MediaItem)=>void;onMove:(index:number,direction:-1|1)=>void}){
+  const slots=[0,1,2,3,4];
+  return <div className={`favorites-grid ${editing?"is-editing":""}`}>
+    {slots.map((i)=>{
+      const item=items[i];
+      if(!item)return <button key={`empty-${i}`} className={`favorite-slot favorite-empty favorite-pos-${i+1}`} onClick={onAdd}><span className="favorite-rank">#{i+1}</span><Plus/><span>Añadir favorito</span></button>;
+      return <div className={`favorite-slot favorite-pos-${i+1}`} key={String(item.ID)}>
+        <Poster item={item} className={i===0?"favorite-big":""}/>
+        <span className="favorite-rank">#{i+1}</span>
+        {editing&&<div className="favorite-tools">
+          <button aria-label="Mover hacia arriba" disabled={i===0} onClick={()=>onMove(i,-1)}><ChevronLeft size={16}/></button>
+          <button aria-label="Mover hacia abajo" disabled={i===items.length-1} onClick={()=>onMove(i,1)}><ChevronRight size={16}/></button>
+          <button className="remove" aria-label="Quitar de favoritos" onClick={()=>onRemove(item)}><X size={16}/></button>
+        </div>}
+      </div>
+    })}
+  </div>
+}
+
+function PosterGrid({items}:{items:MediaItem[]}){return items.length?<div className="poster-grid">{items.map(i=><Poster key={i.ID} item={i}/>)}</div>:<Empty>Aún no hay títulos recientes.</Empty>}
+
+function WatchingList({items,onProgress}:{items:MediaItem[];onProgress:(i:MediaItem,d:1|-1)=>void}){
+  if(!items.length)return <Empty>No tienes títulos en “Viendo” ahora.</Empty>;
+  return <div className="watch-list">{items.map(i=>{
+    const p=num(i.Progress),t=num(i.Total),pct=t?Math.min(100,p/t*100):0;
+    return <div className="watch-row" key={i.ID}>
+      <div className="mini-poster">{i.PosterURL?<img src={String(i.PosterURL)} alt={String(i.Title||"")}/>:<Film/>}<Score value={i.Score}/></div>
+      <div className="watch-main">
+        <h3 className="watch-title" title={String(i.Title||"")}>{i.Title}</h3>
+        <div className="watch-meta"><span>{i.Type} · {STATUS_LABELS[i.Status]||i.Status}</span><strong>{p}{t?` / ${t}`:""}</strong></div>
+        <div className="progress-track"><i style={{width:`${pct}%`}}/></div>
+      </div>
+      <div className="stepper">
+        <button aria-label="Restar episodio" onClick={()=>onProgress(i,-1)}><Minus/></button>
+        <button aria-label="Sumar episodio" className="plus" onClick={()=>onProgress(i,1)}><Plus/></button>
+      </div>
+    </div>
+  })}</div>
+}
+
+function FavoriteModal({close,notify,onChanged}:{close:()=>void;notify:(s:string)=>void;onChanged:()=>Promise<void>|void}){
+  const [state,setState]=useState<ApiState<MediaItem[]>>({loading:true,data:null,error:""});
+  useEffect(()=>{api<MediaItem[]>("/api/library").then(d=>setState({loading:false,data:d,error:""})).catch(e=>setState({loading:false,data:null,error:e.message}))},[]);
+  const favorites=(state.data||[]).filter(i=>truthy(i.Favorite));
+  const candidates=(state.data||[]).filter(i=>!truthy(i.Favorite));
+  const add=async(i:MediaItem)=>{
+    if(favorites.length>=5){notify("Tu Top 5 ya está completo");return}
+    try{
+      await api(`/api/media/${i.ID}`,{method:"PATCH",body:JSON.stringify({action:"favorite",value:true})});
+      setState(s=>s.data?{...s,data:s.data.map(x=>String(x.ID)===String(i.ID)?{...x,Favorite:true}:x)}:s);
+      notify("Añadido a tu Top 5");
+      await onChanged();
+    }catch(e){notify(e instanceof Error?e.message:"Error")}
+  };
+  return <Modal title="Añadir al Top 5" close={close}>
+    <p className="modal-helper">{favorites.length}/5 favoritos seleccionados. Puedes ordenarlos desde “Editar Top 5”.</p>
+    {state.loading?<LoadingBlock cards={2}/>:favorites.length>=5?<Empty>Tu Top 5 está completo. Cierra esta ventana y usa “Editar Top 5” para quitar o reordenar.</Empty>:candidates.length?<div className="candidate-list">{candidates.map(i=><button key={i.ID} onClick={()=>add(i)}><span>{i.PosterURL?<img src={String(i.PosterURL)} alt=""/>:<Film/>}</span><div><b>{i.Title}</b><small>{i.Type} · {STATUS_LABELS[i.Status]||i.Status}</small></div><Plus/></button>)}</div>:<Empty>No hay más títulos disponibles.</Empty>}
+  </Modal>
+}
 
 function SearchView({notify,refreshHome,refreshLibrary}:{notify:(s:string)=>void;refreshHome:()=>void;refreshLibrary:()=>void}){
   const [q,setQ]=useState("");const [type,setType]=useState("All");const [results,setResults]=useState<SearchItem[]>([]);const [loading,setLoading]=useState(false);const [disc,setDisc]=useState<any>(null);const [err,setErr]=useState("");

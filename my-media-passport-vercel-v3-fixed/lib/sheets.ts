@@ -5,7 +5,7 @@ import { isTruthy } from "./status";
 
 const MEDIA_SHEET = "Media";
 const PROFILE_SHEET = "Profile";
-const OPTIONAL_MEDIA_HEADERS = ["TrackUpdates", "TrackPlanNews"];
+const OPTIONAL_MEDIA_HEADERS = ["TrackUpdates", "TrackPlanNews", "FavoriteRank"];
 
 function env(name: string) {
   const value = process.env[name];
@@ -93,9 +93,11 @@ export async function readProfile(): Promise<Profile | null> {
   const row = rows[1];
   const obj: Record<string, string> = {};
   headers.forEach((h, i) => { obj[h] = String(row[i] ?? ""); });
+  const rawUsername = (obj.Username || "").trim();
+  const rawHandle = (obj.Handle || "").trim();
   return {
-    Username: obj.Username || "DK04",
-    Handle: obj.Handle || "@dk04",
+    Username: !rawUsername || rawUsername === "Tu nombre" || rawUsername === "Your name" ? "DK08" : rawUsername,
+    Handle: !rawHandle || rawHandle.toLowerCase() === "@tuusuario" || rawHandle.toLowerCase() === "@youruser" ? "@dk08" : rawHandle,
     AvatarURL: obj.AvatarURL || "",
     Bio: obj.Bio || "",
     NowWatchingID: obj.NowWatchingID || "",
@@ -159,6 +161,34 @@ export async function appendMedia(values: Record<string, unknown>) {
     requestBody: { values: [row] }
   });
   return complete as MediaItem;
+}
+
+
+export async function updateFavoriteRanks(ids: string[]) {
+  const uniqueIds = [...new Set(ids.map(String))].slice(0, 5);
+  const { headers, rows } = await mediaTable();
+  const idIndex = headers.indexOf("ID");
+  const favoriteIndex = headers.indexOf("Favorite");
+  const rankIndex = headers.indexOf("FavoriteRank");
+  if (idIndex < 0 || favoriteIndex < 0 || rankIndex < 0) throw new Error("Faltan columnas de favoritos.");
+
+  const rankById = new Map(uniqueIds.map((id, index) => [id, index + 1]));
+  const data: {range:string; values:unknown[][]}[] = [];
+
+  rows.forEach((row, rowIdx) => {
+    const id = String(row[idIndex] ?? "");
+    if (!rankById.has(id)) return;
+    const rowNumber = rowIdx + 2;
+    data.push({ range: `${MEDIA_SHEET}!${columnLetter(favoriteIndex)}${rowNumber}`, values: [[true]] });
+    data.push({ range: `${MEDIA_SHEET}!${columnLetter(rankIndex)}${rowNumber}`, values: [[rankById.get(id)]] });
+  });
+
+  if (data.length) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: { valueInputOption: "USER_ENTERED", data }
+    });
+  }
 }
 
 export async function deleteMediaRow(id: string) {

@@ -1,0 +1,16 @@
+MY MEDIA PASSPORT — V4 TOP 5 + MOBILE UI
+
+Cambios incluidos:
+1. Top 5 responsive corregido: #1 grande y #2-#5 al lado sin superponerse.
+2. “Viendo ahora” corregido para títulos largos; ya no cubren los botones +/-.
+3. El nombre por defecto del perfil ahora es DK08 (y @dk08 si todavía estaba el placeholder @tuusuario).
+4. Top 5 editable desde Inicio:
+   - Añadir favoritos hasta 5.
+   - Quitar favoritos.
+   - Mover un favorito hacia arriba/abajo en el ranking.
+   - El orden se guarda en Google Sheets usando la columna FavoriteRank, creada automáticamente si no existe.
+
+Para actualizar GitHub:
+- Mantén el Root Directory de Vercel en: my-media-passport-vercel-v3-fixed
+- Reemplaza el contenido de esa carpeta en GitHub por el contenido de esta carpeta.
+- Haz Commit. Vercel desplegará automáticamente.

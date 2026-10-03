@@ -1,5 +1,5 @@
 import "server-only";
-import { appendMedia, deleteMediaRow, findExistingMedia, findMediaRowById, readMedia, readProfile, updateMediaRow } from "./sheets";
+import { appendMedia, deleteMediaRow, findExistingMedia, findMediaRowById, readMedia, readProfile, updateFavoriteRanks, updateMediaRow } from "./sheets";
 import { isTruthy, safeStatus, STATUS_VALUES } from "./status";
 import type { HomeData, MediaItem, SearchItem, UpdateItem } from "./types";
 import { tvEpisodeCount } from "./providers/tmdb";
@@ -19,7 +19,13 @@ export async function homeData(): Promise<HomeData> {
     total: items.length,
     counts,
     watching: items.filter(i => i.Status === "Watching").sort(sortUpdated).slice(0,8),
-    favorites: items.filter(i => isTruthy(i.Favorite)).sort(sortUpdated).slice(0,5),
+    favorites: items.filter(i => isTruthy(i.Favorite)).sort((a,b) => {
+      const ar = num(a.FavoriteRank), br = num(b.FavoriteRank);
+      if (ar && br) return ar - br;
+      if (ar) return -1;
+      if (br) return 1;
+      return sortUpdated(a,b);
+    }).slice(0,5),
     recent: [...items].sort(sortCreated).slice(0,4),
     profile
   };
@@ -45,7 +51,7 @@ export async function addMedia(item: SearchItem, statusInput: string) {
     Score: "", Year: item.year || "", PosterURL: item.posterUrl || "", BackdropURL: item.backdropUrl || "",
     Overview: item.overview || "", Source: item.source, ExternalID: item.externalId,
     AniListID: item.source === "AniList" ? item.externalId : "", TMDbID: item.source === "TMDb" ? item.externalId : "",
-    MALID: "", StartDate: startDate, FinishDate: finishDate, Notes: "", Favorite: false,
+    MALID: "", StartDate: startDate, FinishDate: finishDate, Notes: "", Favorite: false, FavoriteRank: "",
     TrackUpdates: false, TrackPlanNews: false, CreatedAt: t, UpdatedAt: t
   });
 }
@@ -97,11 +103,43 @@ export async function changeProgress(id:string, direction:1|-1) {
 }
 
 export async function setFavorite(id:string, value:boolean) {
+  const items = await readMedia();
+  const target = items.find(i => String(i.ID) === String(id));
+  if (!target) throw new Error("Título no encontrado");
+
+  const currentFavorites = items
+    .filter(i => isTruthy(i.Favorite) && String(i.ID) !== String(id))
+    .sort((a,b) => {
+      const ar = num(a.FavoriteRank), br = num(b.FavoriteRank);
+      if (ar && br) return ar - br;
+      if (ar) return -1;
+      if (br) return 1;
+      return String(b.UpdatedAt||"").localeCompare(String(a.UpdatedAt||""));
+    });
+
   if (value) {
-    const items = await readMedia();
-    if (items.filter(i => isTruthy(i.Favorite)).length >= 5) throw new Error("Solo puedes tener 5 favoritos.");
+    if (!isTruthy(target.Favorite) && currentFavorites.length >= 5) throw new Error("Solo puedes tener 5 favoritos.");
+    const order = [...currentFavorites, target].slice(0,5).map(i=>String(i.ID));
+    await updateFavoriteRanks(order);
+    return updateMediaRow(id, { Favorite: true, FavoriteRank: order.indexOf(String(id)) + 1, UpdatedAt: now() });
   }
-  return updateMediaRow(id, { Favorite: value, UpdatedAt: now() });
+
+  const updated = await updateMediaRow(id, { Favorite: false, FavoriteRank: "", UpdatedAt: now() });
+  await updateFavoriteRanks(currentFavorites.map(i=>String(i.ID)));
+  return updated;
+}
+
+export async function reorderFavorites(ids:string[]) {
+  const clean = [...new Set(ids.map(String))].slice(0,5);
+  const items = await readMedia();
+  const favoriteIds = new Set(items.filter(i=>isTruthy(i.Favorite)).map(i=>String(i.ID)));
+  if (clean.some(id=>!favoriteIds.has(id))) throw new Error("Solo puedes ordenar títulos que están en tu Top 5.");
+  await updateFavoriteRanks(clean);
+  const refreshed = await readMedia();
+  return refreshed
+    .filter(i=>isTruthy(i.Favorite))
+    .sort((a,b)=>num(a.FavoriteRank)-num(b.FavoriteRank))
+    .slice(0,5);
 }
 
 export async function toggleTracking(id:string, mode:"watching"|"plan") {

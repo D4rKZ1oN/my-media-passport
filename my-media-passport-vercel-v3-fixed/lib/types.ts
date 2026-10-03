@@ -22,6 +22,7 @@ export interface MediaItem {
   FinishDate: string;
   Notes: string;
   Favorite: boolean | string;
+  FavoriteRank?: number | string;
   TrackUpdates?: boolean | string;
   TrackPlanNews?: boolean | string;
   CreatedAt: string;

@@ -1,5 +1,10 @@
 # My Media Passport — Vercel Edition
 
+
+## V4 — Top 5 y UI móvil
+
+Esta versión corrige el layout del Top 5, los títulos largos de “Viendo ahora”, usa DK08 como perfil por defecto y agrega administración/reordenamiento persistente del Top 5 mediante `FavoriteRank`.
+
 Versión Next.js/TypeScript de My Media Passport. La app se publica en Vercel y lee/escribe directamente tu Google Sheet usando una cuenta de servicio. AniList y TMDb se consultan solo desde el servidor.
 
 ## Requisitos
