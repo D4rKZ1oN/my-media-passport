@@ -99,3 +99,58 @@ export async function getSeriesUpdate(id: string, fallback: { id:string; title:s
   }
   return base;
 }
+
+function pickTrailer(videos: any[]) {
+  const yt = (videos || []).filter((v:any) => v?.site === "YouTube" && v?.key);
+  const score = (v:any) => {
+    const type = String(v.type || "");
+    if (type === "Trailer" && v.official) return 4;
+    if (type === "Trailer") return 3;
+    if (type === "Teaser" && v.official) return 2;
+    if (type === "Teaser") return 1;
+    return 0;
+  };
+  const chosen = [...yt].sort((a:any,b:any) => score(b) - score(a))[0];
+  if (!chosen) return null;
+  return { site: "YouTube" as const, key: String(chosen.key), name: String(chosen.name || "Trailer"), official: Boolean(chosen.official) };
+}
+
+export async function getTMDbDetails(id: string, type: "Movie"|"Series") {
+  const path = type === "Movie" ? `/movie/${encodeURIComponent(id)}` : `/tv/${encodeURIComponent(id)}`;
+  const [detailsEs, videosEs] = await Promise.all([
+    tmdb(path, {}, 1800),
+    tmdb(`${path}/videos`, {}, 1800)
+  ]);
+
+  let details = detailsEs;
+  let trailer = pickTrailer(videosEs.results || []);
+
+  if (!detailsEs.overview || !trailer) {
+    const [detailsEn, videosEn] = await Promise.all([
+      !detailsEs.overview ? tmdb(path, { language: "en-US" }, 1800) : Promise.resolve(null),
+      !trailer ? tmdb(`${path}/videos`, { language: "en-US" }, 1800) : Promise.resolve(null)
+    ]);
+    if (!details.overview && detailsEn) details = { ...details, overview: detailsEn.overview || "" };
+    if (!trailer && videosEn) trailer = pickTrailer(videosEn.results || []);
+  }
+
+  const movie = type === "Movie";
+  const date = movie ? details.release_date : details.first_air_date;
+  const runtime = movie ? details.runtime : (Array.isArray(details.episode_run_time) ? details.episode_run_time[0] : "");
+  return {
+    title: (movie ? details.title : details.name) || "Sin título",
+    type,
+    source: "TMDb",
+    externalId: String(details.id || id),
+    year: date ? String(date).slice(0,4) : "",
+    posterUrl: details.poster_path ? IMG + details.poster_path : "",
+    backdropUrl: details.backdrop_path ? BACKDROP + details.backdrop_path : "",
+    overview: details.overview || "",
+    rating: details.vote_average ? Math.round(details.vote_average * 10) / 10 : "",
+    voteCount: details.vote_count || "",
+    genres: Array.isArray(details.genres) ? details.genres.map((g:any) => String(g.name)).filter(Boolean) : [],
+    runtime: runtime || "",
+    episodes: movie ? 1 : (details.number_of_episodes || ""),
+    trailer
+  };
+}

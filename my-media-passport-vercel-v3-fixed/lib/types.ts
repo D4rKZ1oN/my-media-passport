@@ -85,3 +85,35 @@ export interface UpdateItem {
   message: string;
   ok: boolean;
 }
+
+export interface DetailSeed {
+  title: string;
+  type: string;
+  source: string;
+  externalId: string;
+  year?: number | string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  overview?: string;
+  rating?: number | string;
+  voteCount?: number | string;
+  libraryId?: string;
+  status?: string;
+  progress?: number | string;
+  total?: number | string;
+  score?: number | string;
+}
+
+export interface TrailerInfo {
+  site: "YouTube";
+  key: string;
+  name: string;
+  official?: boolean;
+}
+
+export interface MediaDetails extends DetailSeed {
+  genres?: string[];
+  runtime?: number | string;
+  episodes?: number | string;
+  trailer?: TrailerInfo | null;
+}

@@ -1,0 +1,24 @@
+MY MEDIA PASSPORT — V5
+Ficha de título + descripción + trailer integrado
+
+NOVEDADES
+- Toca un póster/título en Inicio, Buscar o Mi lista para abrir una ficha moderna.
+- La ficha muestra descripción, año, rating, géneros, duración/episodios cuando la fuente los ofrece.
+- Si el título está guardado, muestra también Estado, Progreso y Tu score.
+- Trailer de YouTube integrado directamente en la ficha cuando AniList o TMDb lo proporcionan.
+- Para TMDb se intenta primero el video localizado y después un fallback en inglés si no existe trailer localizado.
+- Si no hay trailer, se muestra "Trailer no disponible". No se inventan videos.
+- El trailer y los detalles se cargan solamente al abrir la ficha, para no hacer más lenta la Home.
+- En iPhone la ficha aparece como un bottom sheet animado; en desktop como modal cinematográfico.
+
+CONSERVA TODO LO DE V4
+- Top 5 corregido y reordenable.
+- DK08 como nombre por defecto.
+- Viendo ahora con títulos largos corregidos.
+- Búsqueda AniList + TMDb.
+- Google Sheets, favoritos, progreso, novedades, filtros y PWA.
+
+ACTUALIZACIÓN
+Sube el CONTENIDO de esta carpeta a la carpeta que Vercel usa como Root Directory en GitHub.
+No subas la carpeta contenedora dentro de sí misma.
+Después confirma el commit y deja que Vercel despliegue el commit nuevo.

@@ -87,3 +87,33 @@ export async function getAnimeUpdate(id: string, fallback: { id:string; title:st
   }
   return base;
 }
+
+export async function getAnimeDetails(id: string) {
+  const query = `query ($id:Int){Media(id:$id,type:ANIME){
+    id title{romaji english} description(asHtml:false) startDate{year}
+    coverImage{extraLarge large medium} bannerImage episodes duration averageScore popularity genres
+    trailer{id site thumbnail}
+  }}`;
+  const data = await gql<any>(query, { id: Number(id) }, 1800);
+  const m = data.Media;
+  if (!m) throw new Error("Anime no encontrado en AniList");
+  const trailer = m.trailer?.id && String(m.trailer?.site || "").toLowerCase() === "youtube"
+    ? { site: "YouTube" as const, key: String(m.trailer.id), name: "Trailer", official: true }
+    : null;
+  return {
+    title: m.title?.english || m.title?.romaji || "Sin título",
+    type: "Anime",
+    source: "AniList",
+    externalId: String(m.id),
+    year: m.startDate?.year || "",
+    posterUrl: m.coverImage?.extraLarge || m.coverImage?.large || m.coverImage?.medium || "",
+    backdropUrl: m.bannerImage || "",
+    overview: String(m.description || "").replace(/<[^>]*>/g, "").trim(),
+    rating: m.averageScore ? Math.round(m.averageScore) / 10 : "",
+    voteCount: m.popularity || "",
+    genres: Array.isArray(m.genres) ? m.genres : [],
+    runtime: m.duration || "",
+    episodes: m.episodes || "",
+    trailer
+  };
+}

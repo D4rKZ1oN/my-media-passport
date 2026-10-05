@@ -1,9 +1,12 @@
 # My Media Passport — Vercel Edition
 
+## V5 — Ficha de título, descripción y trailer
+
+Esta versión conserva todo lo de V4 y agrega una ficha moderna al tocar anime, película o serie. La ficha muestra descripción y metadatos disponibles, y reproduce el trailer de YouTube directamente dentro de la app cuando AniList o TMDb lo proporcionan. El trailer se consulta solo cuando abres la ficha para mantener rápida la Home.
 
 ## V4 — Top 5 y UI móvil
 
-Esta versión corrige el layout del Top 5, los títulos largos de “Viendo ahora”, usa DK08 como perfil por defecto y agrega administración/reordenamiento persistente del Top 5 mediante `FavoriteRank`.
+V4 corrigió el layout del Top 5, los títulos largos de “Viendo ahora”, usa DK08 como perfil por defecto y agrega administración/reordenamiento persistente del Top 5 mediante `FavoriteRank`.
 
 Versión Next.js/TypeScript de My Media Passport. La app se publica en Vercel y lee/escribe directamente tu Google Sheet usando una cuenta de servicio. AniList y TMDb se consultan solo desde el servidor.
 
@@ -53,3 +56,6 @@ Si faltan `TrackUpdates` y `TrackPlanNews`, la app las agrega automáticamente a
 - Novedades: seguimiento de anime/series seleccionadas con 🔔.
 - PWA con iconos para iPhone.
 - Animaciones CSS, skeleton loaders, optimistic UI y diseño responsive.
+- Ficha de detalles al tocar títulos en Inicio, Buscar y Mi lista.
+- Descripción obtenida del dato guardado y/o del proveedor real.
+- Trailer integrado desde YouTube únicamente cuando AniList/TMDb devuelve uno asociado al título.
