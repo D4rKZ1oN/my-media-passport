@@ -280,3 +280,44 @@
 @media(max-width:390px){
   .detail-hero-content{grid-template-columns:88px minmax(0,1fr)}.detail-cover{width:88px}.detail-copy h2{font-size:23px}.detail-library-info{grid-template-columns:1fr 1fr}.detail-library-info>div:last-child{grid-column:1 / -1}
 }
+
+/* =========================================================
+   v5.1 — Mi Lista: títulos largos compactos sin solaparse
+   ========================================================= */
+.library-row .lib-title-line{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:8px;
+}
+.library-row .lib-title-line>div{min-width:0}
+.library-row .lib-title-line h3{
+  min-width:0;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.18;
+}
+.library-row .lib-title-line>span{
+  flex:none;
+  min-width:max-content;
+  justify-self:end;
+  align-self:start;
+  line-height:1.18;
+  padding-top:1px;
+}
+
+@media(max-width:680px){
+  .library-row .lib-title-line{gap:6px}
+  .library-row .lib-title-line h3{
+    font-size:14px;
+    letter-spacing:-.15px;
+  }
+  .library-row .lib-title-line>span{font-size:11px}
+}
+
+@media(max-width:390px){
+  .library-row .lib-title-line h3{font-size:13px}
+  .library-row .lib-title-line>span{font-size:10.5px}
+}

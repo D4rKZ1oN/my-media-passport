@@ -1,0 +1,14 @@
+MY MEDIA PASSPORT v5.1 — MI LISTA / TÍTULOS COMPACTOS
+
+Cambio visual específico:
+- Los títulos largos de "Mi lista" ya no invaden el contador de progreso.
+- El contador (por ejemplo 2 / 11) conserva siempre su propio espacio a la derecha.
+- Los títulos largos se recortan con puntos suspensivos en una sola línea.
+- En móvil el tamaño del título se ajusta ligeramente para aprovechar mejor el espacio.
+- No se modificaron posters, botones, barra de progreso, estados, favoritos, edición, trailers ni navegación.
+
+Instalación:
+1. Sube el contenido de esta carpeta sobre my-media-passport-vercel-v3-fixed en GitHub.
+2. Commit directamente a main.
+3. Espera el deployment nuevo en Vercel.
+4. Si queda Ready pero Stale, abre ese deployment y usa Promote.
