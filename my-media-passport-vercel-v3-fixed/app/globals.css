@@ -321,3 +321,47 @@
   .library-row .lib-title-line h3{font-size:13px}
   .library-row .lib-title-line>span{font-size:10.5px}
 }
+
+/* =========================================================
+   v5.2 — Novedades: títulos largos compactos sin desbordarse
+   ========================================================= */
+.update-card{
+  grid-template-columns:70px minmax(0,1fr);
+}
+.update-card > div:not(.update-poster){
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
+}
+.update-card h3{
+  display:block;
+  min-width:0;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.18;
+}
+.update-card p,
+.update-card .update-date{
+  min-width:0;
+  max-width:100%;
+}
+.update-card p{
+  overflow-wrap:anywhere;
+}
+
+@media(max-width:680px){
+  .update-card{
+    grid-template-columns:64px minmax(0,1fr);
+    gap:10px;
+  }
+  .update-card h3{
+    font-size:14px;
+    letter-spacing:-.15px;
+  }
+}
+
+@media(max-width:390px){
+  .update-card h3{font-size:13px}
+}

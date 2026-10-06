@@ -1,0 +1,14 @@
+MY MEDIA PASSPORT v5.2 — NOVEDADES / TÍTULOS COMPACTOS
+
+Cambio visual específico:
+- Los títulos largos en "Novedades" ya no se salen de sus tarjetas.
+- Se reserva correctamente el ancho disponible junto al póster.
+- Los títulos demasiado largos se recortan con puntos suspensivos en una sola línea.
+- En móvil el tamaño se ajusta ligeramente para mantener la tarjeta limpia y legible.
+- No se modificaron fechas, estados, posters, seguimiento, trailers, Top 5, Mi lista ni navegación.
+
+Instalación:
+1. Sube el contenido de esta carpeta sobre my-media-passport-vercel-v3-fixed en GitHub.
+2. Commit directamente a main.
+3. Espera el deployment nuevo en Vercel.
+4. Si queda Ready pero Stale, abre ese deployment y usa Promote.
