@@ -1,5 +1,5 @@
 import "server-only";
-import type { SearchItem, UpdateItem } from "../types";
+import type { ExternalRating, SearchItem, UpdateItem } from "../types";
 
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p/w500";
@@ -68,6 +68,17 @@ export async function getSeriesUpdate(id: string, fallback: { id:string; title:s
     const d = await tmdb(`/tv/${encodeURIComponent(id)}`, {}, 900);
     base.title = d.name || base.title;
     base.posterUrl = d.poster_path ? IMG + d.poster_path : base.posterUrl;
+    if (fallback.status === "Plan to Watch" && d.first_air_date) {
+      const premiere = new Date(`${d.first_air_date}T12:00:00`).getTime();
+      if (Number.isFinite(premiere) && premiere >= Date.now() - 86400000) {
+        base.ok = true;
+        base.dateKind = "exact";
+        base.airingAt = premiere;
+        base.label = "Estreno de serie";
+        base.message = "Fecha de estreno indicada por TMDb.";
+        return base;
+      }
+    }
     const next = d.next_episode_to_air;
     if (next?.air_date) {
       const time = new Date(`${next.air_date}T12:00:00`).getTime();
@@ -100,6 +111,33 @@ export async function getSeriesUpdate(id: string, fallback: { id:string; title:s
   return base;
 }
 
+
+export async function getMovieUpdate(id: string, fallback: { id:string; title:string; type:string; status:string; posterUrl:string }): Promise<UpdateItem> {
+  const base: UpdateItem = { ...fallback, message: "Sin fecha de estreno confirmada por TMDb.", ok: false };
+  if (!id) return base;
+  try {
+    const d = await tmdb(`/movie/${encodeURIComponent(id)}`, {}, 1800);
+    base.title = d.title || base.title;
+    base.posterUrl = d.poster_path ? IMG + d.poster_path : base.posterUrl;
+    const date = String(d.release_date || "");
+    if (date) {
+      const time = new Date(`${date}T12:00:00`).getTime();
+      if (Number.isFinite(time) && time >= Date.now() - 86400000) {
+        base.ok = true;
+        base.dateKind = "exact";
+        base.airingAt = time;
+        base.label = "Estreno de película";
+        base.message = "Fecha de estreno indicada por TMDb.";
+      } else {
+        base.message = "La fecha de estreno de esta película ya pasó.";
+      }
+    }
+  } catch {
+    base.message = "No se pudo cargar la fecha de estreno ahora.";
+  }
+  return base;
+}
+
 function pickTrailer(videos: any[]) {
   const yt = (videos || []).filter((v:any) => v?.site === "YouTube" && v?.key);
   const score = (v:any) => {
@@ -117,9 +155,10 @@ function pickTrailer(videos: any[]) {
 
 export async function getTMDbDetails(id: string, type: "Movie"|"Series") {
   const path = type === "Movie" ? `/movie/${encodeURIComponent(id)}` : `/tv/${encodeURIComponent(id)}`;
-  const [detailsEs, videosEs] = await Promise.all([
+  const [detailsEs, videosEs, externalIds] = await Promise.all([
     tmdb(path, {}, 1800),
-    tmdb(`${path}/videos`, {}, 1800)
+    tmdb(`${path}/videos`, {}, 1800),
+    tmdb(`${path}/external_ids`, {}, 21600).catch(() => ({}))
   ]);
 
   let details = detailsEs;
@@ -151,6 +190,17 @@ export async function getTMDbDetails(id: string, type: "Movie"|"Series") {
     genres: Array.isArray(details.genres) ? details.genres.map((g:any) => String(g.name)).filter(Boolean) : [],
     runtime: runtime || "",
     episodes: movie ? 1 : (details.number_of_episodes || ""),
-    trailer
+    trailer,
+    tmdbId: String(details.id || id),
+    imdbId: String(externalIds?.imdb_id || ""),
+    releaseDate: String(movie ? (details.release_date || "") : (details.first_air_date || "")),
+    externalRatings: details.vote_average ? [{
+      provider: "TMDb",
+      score: `${Math.round(Number(details.vote_average) * 10)}%`,
+      scale: "",
+      votes: Number(details.vote_count || 0) || undefined,
+      url: movie ? `https://www.themoviedb.org/movie/${details.id}` : `https://www.themoviedb.org/tv/${details.id}`,
+      sourceNote: "Puntuación de TMDb"
+    } satisfies ExternalRating] : []
   };
 }

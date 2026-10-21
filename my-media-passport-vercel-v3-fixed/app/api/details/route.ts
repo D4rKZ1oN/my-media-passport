@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnimeDetails } from "@/lib/providers/anilist";
 import { getTMDbDetails } from "@/lib/providers/tmdb";
+import { getOmdbRatings } from "@/lib/providers/omdb";
+import { getLetterboxdRating } from "@/lib/providers/letterboxd";
+import type { ExternalRating, MediaDetails } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+async function enrich(details: MediaDetails) {
+  const ratings: ExternalRating[] = [...(details.externalRatings || [])];
+  const [omdb, letterboxd] = await Promise.all([
+    getOmdbRatings(details.imdbId),
+    getLetterboxdRating({ tmdbId: details.tmdbId, imdbId: details.imdbId, type: details.type })
+  ]);
+  ratings.push(...omdb);
+  if (letterboxd) ratings.push(letterboxd);
+
+  const deduped = ratings.filter((r, idx, arr) => arr.findIndex(x => x.provider === r.provider) === idx);
+  return { ...details, externalRatings: deduped };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,11 +31,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (source === "AniList") {
-      return NextResponse.json(await getAnimeDetails(id));
+      return NextResponse.json(await enrich(await getAnimeDetails(id)));
     }
 
     if (source === "TMDb" && (type === "Movie" || type === "Series")) {
-      return NextResponse.json(await getTMDbDetails(id, type));
+      return NextResponse.json(await enrich(await getTMDbDetails(id, type)));
     }
 
     return NextResponse.json({ error: "Esta fuente no ofrece detalles adicionales compatibles." }, { status: 404 });

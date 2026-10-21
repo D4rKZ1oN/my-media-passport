@@ -59,3 +59,24 @@ Si faltan `TrackUpdates` y `TrackPlanNews`, la app las agrega automáticamente a
 - Ficha de detalles al tocar títulos en Inicio, Buscar y Mi lista.
 - Descripción obtenida del dato guardado y/o del proveedor real.
 - Trailer integrado desde YouTube únicamente cuando AniList/TMDb devuelve uno asociado al título.
+
+
+## v6 — Ratings + estrenos con campanita
+
+Variables opcionales nuevas:
+
+```env
+# IMDb + Rotten Tomatoes vía OMDb (free tier)
+OMDB_API_KEY=
+
+# Letterboxd official API (solo si ya tienes credenciales oficiales)
+LETTERBOXD_CLIENT_ID=
+LETTERBOXD_CLIENT_SECRET=
+
+# Región preferida para fechas TMDb (opcional)
+TMDB_REGION=US
+```
+
+Sin estas variables opcionales la app sigue funcionando. TMDb/AniList se muestran normalmente; IMDb/RT/Letterboxd solo aparecen cuando la fuente correspondiente devuelve datos verificados.
+
+La campanita ahora también puede activarse en películas con estado `Plan to Watch`, y esas fechas aparecen en Novedades.

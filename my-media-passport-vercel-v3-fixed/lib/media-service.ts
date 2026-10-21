@@ -2,7 +2,7 @@ import "server-only";
 import { appendMedia, deleteMediaRow, findExistingMedia, findMediaRowById, readMedia, readProfile, updateFavoriteRanks, updateMediaRow } from "./sheets";
 import { isTruthy, safeStatus, STATUS_VALUES } from "./status";
 import type { HomeData, MediaItem, SearchItem, UpdateItem } from "./types";
-import { tvEpisodeCount } from "./providers/tmdb";
+import { getMovieUpdate, tvEpisodeCount } from "./providers/tmdb";
 import { getAnimeUpdate } from "./providers/anilist";
 import { getSeriesUpdate } from "./providers/tmdb";
 
@@ -154,10 +154,11 @@ export async function removeMedia(id:string) { await deleteMediaRow(id); return 
 export async function updatesData() {
   const items = await readMedia();
   const watching = items.filter(i => i.Status === "Watching" && isTruthy(i.TrackUpdates) && (i.Type === "Anime" || i.Type === "Series"));
-  const plan = items.filter(i => i.Status === "Plan to Watch" && isTruthy(i.TrackPlanNews) && (i.Type === "Anime" || i.Type === "Series"));
+  const plan = items.filter(i => i.Status === "Plan to Watch" && isTruthy(i.TrackPlanNews) && (i.Type === "Anime" || i.Type === "Series" || i.Type === "Movie"));
   const get = (item:MediaItem):Promise<UpdateItem> => {
     const base = { id:String(item.ID), title:String(item.Title||"Sin título"), type:String(item.Type||""), status:String(item.Status||""), posterUrl:String(item.PosterURL||"") };
     if (item.Type === "Anime") return getAnimeUpdate(String(item.AniListID || (item.Source === "AniList" ? item.ExternalID : "")), base);
+    if (item.Type === "Movie") return getMovieUpdate(String(item.TMDbID || (item.Source === "TMDb" ? item.ExternalID : "")), base);
     return getSeriesUpdate(String(item.TMDbID || (item.Source === "TMDb" ? item.ExternalID : "")), base);
   };
   const [calendar, planNews] = await Promise.all([Promise.all(watching.slice(0,20).map(get)), Promise.all(plan.slice(0,20).map(get))]);

@@ -111,9 +111,23 @@ export interface TrailerInfo {
   official?: boolean;
 }
 
+export interface ExternalRating {
+  provider: "IMDb" | "Rotten Tomatoes" | "Letterboxd" | "TMDb" | "AniList";
+  score: string;
+  scale?: string;
+  votes?: number;
+  reviews?: number;
+  url?: string;
+  sourceNote?: string;
+}
+
 export interface MediaDetails extends DetailSeed {
   genres?: string[];
   runtime?: number | string;
   episodes?: number | string;
   trailer?: TrailerInfo | null;
+  tmdbId?: string;
+  imdbId?: string;
+  releaseDate?: string;
+  externalRatings?: ExternalRating[];
 }

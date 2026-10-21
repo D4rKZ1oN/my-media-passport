@@ -365,3 +365,37 @@
 @media(max-width:390px){
   .update-card h3{font-size:13px}
 }
+
+/* =========================================================
+   v6 — Ratings strip + movie premiere tracking
+   ========================================================= */
+.detail-ratings{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  gap:8px;
+}
+.external-rating-card{
+  min-width:0;
+  min-height:78px;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+  border-radius:16px;
+  padding:11px 12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:3px;
+  color:inherit;
+  text-decoration:none;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease;
+}
+.external-rating-card:hover{transform:translateY(-2px);border-color:rgba(0,217,153,.28);background:rgba(0,217,153,.055)}
+.external-rating-card strong{font-size:20px;line-height:1;font-weight:950;letter-spacing:-.5px}
+.external-rating-card small{font-size:9px;color:var(--muted);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rating-source{font-size:9px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;color:#dffbf2}
+.rating-imdb{color:#f5c518}.rating-rotten-tomatoes{color:#ff5f57}.rating-letterboxd{color:#86d04b}.rating-tmdb{color:#90cea1}.rating-anilist{color:#61d6ff}
+@media(max-width:680px){
+  .detail-ratings{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .external-rating-card{min-height:68px;border-radius:13px;padding:9px 10px}
+  .external-rating-card strong{font-size:17px}.external-rating-card small{font-size:8px}
+}

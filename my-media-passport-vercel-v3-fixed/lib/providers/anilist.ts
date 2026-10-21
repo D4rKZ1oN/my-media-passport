@@ -1,5 +1,5 @@
 import "server-only";
-import type { SearchItem, UpdateItem } from "../types";
+import type { ExternalRating, SearchItem, UpdateItem } from "../types";
 
 const URL = "https://graphql.anilist.co";
 
@@ -92,6 +92,7 @@ export async function getAnimeDetails(id: string) {
   const query = `query ($id:Int){Media(id:$id,type:ANIME){
     id title{romaji english} description(asHtml:false) startDate{year}
     coverImage{extraLarge large medium} bannerImage episodes duration averageScore popularity genres
+    stats{scoreDistribution{score amount}} externalLinks{site url}
     trailer{id site thumbnail}
   }}`;
   const data = await gql<any>(query, { id: Number(id) }, 1800);
@@ -100,6 +101,18 @@ export async function getAnimeDetails(id: string) {
   const trailer = m.trailer?.id && String(m.trailer?.site || "").toLowerCase() === "youtube"
     ? { site: "YouTube" as const, key: String(m.trailer.id), name: "Trailer", official: true }
     : null;
+  const links = Array.isArray(m.externalLinks) ? m.externalLinks : [];
+  const imdbUrl = String(links.find((l:any) => /imdb/i.test(String(l?.site||"")) || /imdb\.com\/title\//i.test(String(l?.url||"")))?.url || "");
+  const tmdbUrl = String(links.find((l:any) => /the movie database|tmdb/i.test(String(l?.site||"")) || /themoviedb\.org\/(movie|tv)\//i.test(String(l?.url||"")))?.url || "");
+  const imdbId = imdbUrl.match(/(tt\d+)/i)?.[1] || "";
+  const tmdbId = tmdbUrl.match(/themoviedb\.org\/(?:movie|tv)\/(\d+)/i)?.[1] || "";
+  const ratingCount = Array.isArray(m.stats?.scoreDistribution)
+    ? m.stats.scoreDistribution.reduce((sum:number,row:any)=>sum+Number(row?.amount||0),0)
+    : 0;
+  const aniRating: ExternalRating[] = m.averageScore ? [{
+    provider: "AniList", score: `${Math.round(Number(m.averageScore))}%`, scale: "",
+    votes: ratingCount || undefined, url: `https://anilist.co/anime/${m.id}`, sourceNote: "Puntuación de AniList"
+  }] : [];
   return {
     title: m.title?.english || m.title?.romaji || "Sin título",
     type: "Anime",
@@ -114,6 +127,9 @@ export async function getAnimeDetails(id: string) {
     genres: Array.isArray(m.genres) ? m.genres : [],
     runtime: m.duration || "",
     episodes: m.episodes || "",
-    trailer
+    trailer,
+    tmdbId,
+    imdbId,
+    externalRatings: aniRating
   };
 }

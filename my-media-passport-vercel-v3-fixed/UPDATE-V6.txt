@@ -1,0 +1,13 @@
+MY MEDIA PASSPORT v6
+
+NUEVO
+- Ficha de título con franja estética de puntuaciones externas.
+- TMDb o AniList aparecen sin configuración extra cuando la fuente devuelve datos.
+- IMDb y Rotten Tomatoes pueden aparecer usando OMDb (OMDB_API_KEY opcional, free tier).
+- Letterboxd puede mostrar rating, ratings y número de reviews cuando se configuran credenciales oficiales.
+- La campanita ahora también aparece en películas con estado "Próximo en ver".
+- Novedades puede mostrar la fecha de estreno de películas.
+- Series en "Próximo en ver" priorizan su fecha de estreno cuando aún no han comenzado.
+
+REGLA
+Nunca se inventan puntuaciones, conteos o fechas. Si una fuente no devuelve el dato, no se muestra.
