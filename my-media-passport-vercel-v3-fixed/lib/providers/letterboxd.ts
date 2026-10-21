@@ -59,11 +59,13 @@ export async function getLetterboxdRating(opts: { tmdbId?: string; imdbId?: stri
     const stats = await lb(`/film/${encodeURIComponent(lid)}/statistics`);
     if (!stats) return null;
     const rating = stats?.rating;
+    // La tarjeta de Letterboxd solo debe existir cuando Letterboxd devuelve una media real.
+    if (rating === undefined || rating === null || !Number.isFinite(Number(rating))) return null;
     const reviews = Number(stats?.counts?.reviews);
     const ratings = Number(stats?.counts?.ratings);
     return {
       provider: "Letterboxd",
-      score: rating !== undefined && rating !== null ? Number(rating).toFixed(2) : "",
+      score: Number(rating).toFixed(2),
       scale: "/5",
       reviews: Number.isFinite(reviews) ? reviews : undefined,
       votes: Number.isFinite(ratings) ? ratings : undefined,

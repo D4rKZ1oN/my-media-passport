@@ -281,12 +281,11 @@ function MediaDetailSheet({seed,close}:{seed:DetailSeed;close:()=>void}){
   const episodes=d?.episodes||seed.total;
   const trailerUrl=trailer?.key?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer.key)}?rel=0&modestbranding=1`:"";
   const ratingsRaw=[...(d?.externalRatings||[])];
-  const shouldShowRt=seed.type==="Movie"||seed.type==="Series"||Boolean(d?.imdbId);
-  if(shouldShowRt&&!ratingsRaw.some(r=>r.provider==="Rotten Tomatoes")){
-    ratingsRaw.push({provider:"Rotten Tomatoes",score:"—",sourceNote:"OMDb no devolvió una puntuación de Rotten Tomatoes para este título."});
-  }
-  const ratingOrder=["Rotten Tomatoes","IMDb","TMDb","Letterboxd","AniList"];
-  const ratingsForDisplay=ratingsRaw.sort((a,b)=>{
+  // Solo mostramos una fuente cuando realmente devolvió una puntuación.
+  // Así Rotten Tomatoes y Letterboxd desaparecen por completo cuando no hay dato real.
+  const ratingsAvailable=ratingsRaw.filter(r=>String(r.score||"").trim()!==""&&String(r.score||"").trim()!=="—");
+  const ratingOrder=["Rotten Tomatoes","IMDb","Letterboxd","TMDb","AniList"];
+  const ratingsForDisplay=ratingsAvailable.sort((a,b)=>{
     const ai=ratingOrder.indexOf(a.provider);const bi=ratingOrder.indexOf(b.provider);
     return (ai<0?99:ai)-(bi<0?99:bi);
   });
@@ -309,8 +308,9 @@ function MediaDetailSheet({seed,close}:{seed:DetailSeed;close:()=>void}){
         {ratingsForDisplay.length?
           <div className="detail-ratings" aria-label="Puntuaciones externas">
             {ratingsForDisplay.map(r=>{
-              const missing=r.score==="—";
-              const meta=r.reviews?`${compactCount(r.reviews)} reseñas`:r.votes?`${compactCount(r.votes)} votos`:missing?"Sin dato":"";
+              const meta=r.provider==="Letterboxd"
+                ? [r.votes?`${compactCount(r.votes)} valoraciones`:"",r.reviews?`${compactCount(r.reviews)} reseñas`:""].filter(Boolean).join(" · ")
+                : r.reviews?`${compactCount(r.reviews)} reseñas`:r.votes?`${compactCount(r.votes)} votos`:"";
               const content=<>
                 <RatingProviderMark provider={r.provider}/>
                 <span className="rating-compact-copy">
@@ -318,7 +318,7 @@ function MediaDetailSheet({seed,close}:{seed:DetailSeed;close:()=>void}){
                   {meta&&<small>{meta}</small>}
                 </span>
               </>;
-              return r.url?<a key={r.provider} href={r.url} target="_blank" rel="noreferrer" className={`external-rating-card ${missing?"is-missing":""}`} title={r.sourceNote||r.provider} aria-label={`${r.provider}: ${missing?"sin puntuación disponible":`${r.score}${r.scale||""}`}`}>{content}</a>:<div key={r.provider} className={`external-rating-card ${missing?"is-missing":""}`} title={r.sourceNote||r.provider} aria-label={`${r.provider}: ${missing?"sin puntuación disponible":`${r.score}${r.scale||""}`}`}>{content}</div>;
+              return r.url?<a key={r.provider} href={r.url} target="_blank" rel="noreferrer" className="external-rating-card" title={r.sourceNote||r.provider} aria-label={`${r.provider}: ${r.score}${r.scale||""}`}>{content}</a>:<div key={r.provider} className="external-rating-card" title={r.sourceNote||r.provider} aria-label={`${r.provider}: ${r.score}${r.scale||""}`}>{content}</div>;
             })}
           </div>:null}
         <div className="detail-section"><div className="detail-section-title">Descripción</div><p className="detail-overview">{overview}</p></div>

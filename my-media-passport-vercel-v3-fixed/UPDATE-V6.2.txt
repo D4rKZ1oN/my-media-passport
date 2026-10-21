@@ -1,0 +1,17 @@
+MY MEDIA PASSPORT v6.2 — Ratings visibility + Letterboxd counts
+
+Small, isolated update on top of v6.1.
+
+Changes:
+- Rotten Tomatoes is now rendered ONLY when OMDb actually returns a Rotten Tomatoes score.
+- No Rotten Tomatoes placeholder / dash card is rendered when the source has no score.
+- Letterboxd is rendered ONLY when the official Letterboxd integration returns a real weighted rating.
+- Letterboxd now displays its weighted score plus BOTH available activity counts:
+  - number of ratings (valoraciones)
+  - number of reviews (reseñas)
+- Keeps the compact provider marks introduced in v6.1.
+- Does not alter Google Sheets, TMDb, trailers, Top 5, tracking, navigation or progress logic.
+
+IMPORTANT:
+Letterboxd requires LETTERBOXD_CLIENT_ID and LETTERBOXD_CLIENT_SECRET for the current official API integration.
+If those credentials are unavailable, the Letterboxd badge remains hidden rather than showing fake or guessed data.
