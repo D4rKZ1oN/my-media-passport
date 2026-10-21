@@ -246,6 +246,16 @@ function EditModal({item,close,onSave}:{item:MediaItem;close:()=>void;onSave:(v:
 function UpdatesView({state,onRetry}:{state:ApiState<any>;onRetry:()=>void}){if(state.loading&&!state.data)return <LoadingBlock cards={5}/>;if(state.error&&!state.data)return <ErrorBox message={state.error} onRetry={onRetry}/>;const d=state.data||{calendar:[],planNews:[],trackedWatchingCount:0,trackedPlanCount:0};return <><div className="page-title"><div className="eyebrow">SEGUIMIENTO</div><h1>Novedades</h1><p>Próximos episodios, temporadas y fechas para lo que tú elegiste seguir.</p></div><div className="updates-summary"><div><Bell/><strong>{d.trackedWatchingCount}</strong><span>Viendo en seguimiento</span></div><div><Sparkles/><strong>{d.trackedPlanCount}</strong><span>Próximos con novedades</span></div></div><Section title="Calendario de próximos episodios" subtitle="Solo títulos con 🔔 activada"><UpdateList items={d.calendar}/></Section><Section title="Próximos en ver: temporadas y novedades" subtitle="Solo títulos con seguimiento activado"><UpdateList items={d.planNews}/></Section></>}
 function UpdateList({items}:{items:UpdateItem[]}){if(!items?.length)return <Empty>No hay novedades disponibles para los títulos seleccionados.</Empty>;return <div className="update-list">{items.map((i,idx)=><article key={`${i.id}-${idx}`} className="update-card"><div className="update-poster">{i.posterUrl?<img src={i.posterUrl} alt=""/>:<Film/>}</div><div><div className="update-kicker">{i.dateKind==="exact"?"CONFIRMADO":i.dateKind==="approx"?"FECHA APROXIMADA":"SIN FECHA"}</div><h3>{i.title}</h3><p>{i.label||i.message}</p><div className="update-date"><Clock3 size={16}/>{i.airingAt?formatDate(i.airingAt):(i.approxDateText||"Información no disponible")}</div></div></article>)}</div>}
 
+
+function RatingProviderMark({provider}:{provider:string}){
+  if(provider==="Rotten Tomatoes") return <span className="provider-mark provider-mark-rt" aria-hidden="true">🍅</span>;
+  if(provider==="IMDb") return <span className="provider-mark provider-mark-imdb" aria-hidden="true">IMDb</span>;
+  if(provider==="TMDb") return <span className="provider-mark provider-mark-tmdb" aria-hidden="true">TMDb</span>;
+  if(provider==="Letterboxd") return <span className="provider-mark provider-mark-letterboxd" aria-hidden="true"><i/><i/><i/></span>;
+  if(provider==="AniList") return <span className="provider-mark provider-mark-anilist" aria-hidden="true">AL</span>;
+  return <span className="provider-mark provider-mark-generic" aria-hidden="true">★</span>;
+}
+
 function MediaDetailSheet({seed,close}:{seed:DetailSeed;close:()=>void}){
   const [state,setState]=useState<ApiState<MediaDetails>>({loading:true,data:null,error:""});
   useEffect(()=>{
@@ -270,6 +280,16 @@ function MediaDetailSheet({seed,close}:{seed:DetailSeed;close:()=>void}){
   const runtime=d?.runtime;
   const episodes=d?.episodes||seed.total;
   const trailerUrl=trailer?.key?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer.key)}?rel=0&modestbranding=1`:"";
+  const ratingsRaw=[...(d?.externalRatings||[])];
+  const shouldShowRt=seed.type==="Movie"||seed.type==="Series"||Boolean(d?.imdbId);
+  if(shouldShowRt&&!ratingsRaw.some(r=>r.provider==="Rotten Tomatoes")){
+    ratingsRaw.push({provider:"Rotten Tomatoes",score:"—",sourceNote:"OMDb no devolvió una puntuación de Rotten Tomatoes para este título."});
+  }
+  const ratingOrder=["Rotten Tomatoes","IMDb","TMDb","Letterboxd","AniList"];
+  const ratingsForDisplay=ratingsRaw.sort((a,b)=>{
+    const ai=ratingOrder.indexOf(a.provider);const bi=ratingOrder.indexOf(b.provider);
+    return (ai<0?99:ai)-(bi<0?99:bi);
+  });
 
   return <div className="detail-backdrop" onMouseDown={e=>e.currentTarget===e.target&&close()}>
     <section className="detail-sheet" role="dialog" aria-modal="true" aria-label={`Detalles de ${title}`}>
@@ -286,12 +306,19 @@ function MediaDetailSheet({seed,close}:{seed:DetailSeed;close:()=>void}){
         </div>
       </div>
       <div className="detail-body">
-        {d?.externalRatings?.length?
+        {ratingsForDisplay.length?
           <div className="detail-ratings" aria-label="Puntuaciones externas">
-            {d.externalRatings.map(r=>{
-              const meta=r.reviews?`${compactCount(r.reviews)} reseñas`:r.votes?`${compactCount(r.votes)} votos`:"";
-              const content=<><span className={`rating-source rating-${r.provider.toLowerCase().replace(/[^a-z]+/g,"-")}`}>{r.provider}</span><strong>{r.score}{r.scale||""}</strong>{meta&&<small>{meta}</small>}</>;
-              return r.url?<a key={r.provider} href={r.url} target="_blank" rel="noreferrer" className="external-rating-card" title={r.sourceNote||r.provider}>{content}</a>:<div key={r.provider} className="external-rating-card" title={r.sourceNote||r.provider}>{content}</div>;
+            {ratingsForDisplay.map(r=>{
+              const missing=r.score==="—";
+              const meta=r.reviews?`${compactCount(r.reviews)} reseñas`:r.votes?`${compactCount(r.votes)} votos`:missing?"Sin dato":"";
+              const content=<>
+                <RatingProviderMark provider={r.provider}/>
+                <span className="rating-compact-copy">
+                  <strong>{r.score}{r.scale||""}</strong>
+                  {meta&&<small>{meta}</small>}
+                </span>
+              </>;
+              return r.url?<a key={r.provider} href={r.url} target="_blank" rel="noreferrer" className={`external-rating-card ${missing?"is-missing":""}`} title={r.sourceNote||r.provider} aria-label={`${r.provider}: ${missing?"sin puntuación disponible":`${r.score}${r.scale||""}`}`}>{content}</a>:<div key={r.provider} className={`external-rating-card ${missing?"is-missing":""}`} title={r.sourceNote||r.provider} aria-label={`${r.provider}: ${missing?"sin puntuación disponible":`${r.score}${r.scale||""}`}`}>{content}</div>;
             })}
           </div>:null}
         <div className="detail-section"><div className="detail-section-title">Descripción</div><p className="detail-overview">{overview}</p></div>

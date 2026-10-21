@@ -37,7 +37,7 @@ export async function getOmdbRatings(imdbId?: string): Promise<ExternalRating[]>
     }
 
     const rt = Array.isArray(data?.Ratings)
-      ? data.Ratings.find((r: any) => String(r?.Source || "").toLowerCase() === "rotten tomatoes")
+      ? data.Ratings.find((r: any) => String(r?.Source || "").toLowerCase().includes("rotten"))
       : null;
     if (rt?.Value) {
       out.push({

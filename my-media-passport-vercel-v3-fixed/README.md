@@ -80,3 +80,6 @@ TMDB_REGION=US
 Sin estas variables opcionales la app sigue funcionando. TMDb/AniList se muestran normalmente; IMDb/RT/Letterboxd solo aparecen cuando la fuente correspondiente devuelve datos verificados.
 
 La campanita ahora también puede activarse en películas con estado `Plan to Watch`, y esas fechas aparecen en Novedades.
+
+## v6.1 — compact rating marks
+The rating row is now intentionally compact and uses small recognizable provider marks. Rotten Tomatoes still comes from OMDb when available; missing RT values are shown as unavailable rather than fabricated.

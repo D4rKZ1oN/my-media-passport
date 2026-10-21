@@ -1,0 +1,11 @@
+MY MEDIA PASSPORT v6.1 — Compact rating source marks
+
+This is intentionally a small, low-risk update on top of v6.
+
+Changes only:
+- Keeps all existing v6 behavior and data sources.
+- Makes external ratings compact, similar to the provided visual reference.
+- Adds recognizable compact marks for Rotten Tomatoes, IMDb, TMDb, Letterboxd and AniList.
+- Rotten Tomatoes continues to use OMDb when OMDb provides that rating.
+- If OMDb does not provide a Rotten Tomatoes score for a Movie/Series (or an item with an IMDb ID), the tomato badge remains visible with “— / Sin dato” instead of inventing a score.
+- Does not add a fake Popcornmeter/audience score because OMDb does not provide it reliably.
